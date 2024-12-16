@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
@@ -6,6 +6,7 @@ using Lumina.Data.Files;
 using NativeFileDialog.Extended;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace Alpha.Utils;
 
@@ -74,6 +75,20 @@ public static class Util {
         img.SaveAsPng(bytes);
 
         var filename = tex.FilePath.Path.Split('/').Last().Replace(".tex", "");
+        Save(bytes.ToArray(), "png", filename);
+    }
+
+    public static void ExportAsCompiledPNG(TexFile diffuse, TexFile mask) {
+        // Create a new image from the raw pixel data
+        var diffuseImage = Image.LoadPixelData<Bgra32>(diffuse.ImageData, diffuse.Header.Width, diffuse.Header.Height);
+        var maskImage = Image.LoadPixelData<Bgra32>(mask.ImageData, mask.Header.Width, mask.Header.Height);
+
+        // Blend Images
+        diffuseImage.Mutate(x => x.DrawImage(maskImage, PixelColorBlendingMode.Multiply, PixelAlphaCompositionMode.SrcAtop, 1));
+        var bytes = new MemoryStream();
+        diffuseImage.SaveAsPng(bytes);
+
+        var filename = diffuse.FilePath.Path.Split('/').Last().Replace(".tex", "");
         Save(bytes.ToArray(), "png", filename);
     }
 

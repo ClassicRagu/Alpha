@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Alpha.Game;
 using Alpha.Services;
 using Alpha.Utils;
@@ -183,6 +183,19 @@ public class FilesystemWindow : Window, IDisposable {
 
             if (resource is TexFile texFile) {
                 if (ImGui.Button("Export as .png")) Util.ExportAsPng(texFile);
+                if (filePath.Contains("/map/")) {
+                    if(ImGui.Button("Compile and Export as .png")) {
+                    var maskFile = file.FileName.Contains("m_m.tex") ? texFile : GameData.GameData.GetFile<TexFile>($"{file.FolderName}/{file.FileName.Replace("_m", "m_m")}");
+                        if (maskFile != null) {
+                            var mapFile = file.FileName.Contains("m_m.tex") ? GameData.GameData.GetFile<TexFile>($"{file.FolderName}/{file.FileName.Replace("m_m", "_m")}") : texFile;
+                            if(mapFile != null) {
+                                Util.ExportAsCompiledPNG(mapFile, maskFile);
+                            }
+                        } else {
+                            Util.ExportAsPng(texFile);
+                        }
+                    }
+                }
 
                 var size = new Vector2(texFile.Header.Width, texFile.Header.Height);
                 size = Util.ClampImageSize(size, ImGui.GetContentRegionAvail());
