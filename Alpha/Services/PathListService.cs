@@ -21,7 +21,7 @@ public class PathListService {
 
         try {
             var filename = currentOnly ? "CurrentPathListWithHashes.gz" : "PathListWithHashes.gz";
-            var url = $"https://rl2.perchbird.dev/download/export/{filename}";
+            var url = $"https://rl2.perchbird.dev/download/{filename}";
 
             await using var req = await Program.HttpClient.GetStreamAsync(url);
             await using var gzip = new GZipStream(req, CompressionMode.Decompress);
