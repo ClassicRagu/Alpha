@@ -80,16 +80,12 @@ public unsafe class ImGuiWrapper : IDisposable {
 
         var builder = new ImGuiFontBuilder();
         //builder.Config.FontBuilderFlags |= (uint) ImGuiFreeTypeBuilderFlags.LoadColor;
+        builder.Config.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.LoadColor;
 
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
         if (config.EnableDocking) io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.IniFilename = (byte*) Marshal.StringToHGlobalAnsi(iniPath + "\0");
-
-        // Specify some fonts to load with the Japanese ranges, some without
-        var defaultRanges = io.Fonts.GetGlyphRangesDefault();
-        // Japanese ranges do not seem to be supported anymore, need to look into this more
-        var japaneseRanges = io.Fonts.GetGlyphRangesDefault();
         var loadedFirstFont = false;
 
         // ReSharper disable once MoveLocalFunctionAfterJumpStatement
@@ -104,7 +100,7 @@ public unsafe class ImGuiWrapper : IDisposable {
         // Apply user fonts
         foreach (var font in config.ExtraFonts) {
             if (File.Exists(font.Path)) {
-                builder.AddFontFromFileTTF(font.Path, font.Size, font.JapaneseGlyphs ? japaneseRanges : defaultRanges);
+                builder.AddFontFromFileTTF(font.Path, font.Size);
                 SetMergeMode();
             }
         }
@@ -118,7 +114,7 @@ public unsafe class ImGuiWrapper : IDisposable {
             var hasJpFont = config.ExtraFonts.Any(x => x.JapaneseGlyphs);
             const string cjkFont = "C:/Windows/Fonts/msgothic.ttc";
             if (!hasJpFont && File.Exists(cjkFont)) {
-                builder.AddFontFromFileTTF(cjkFont, 13f, japaneseRanges);
+                builder.AddFontFromFileTTF(cjkFont, 13f);
             }
         }
 
