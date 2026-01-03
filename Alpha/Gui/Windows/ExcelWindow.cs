@@ -681,15 +681,6 @@ public class ExcelWindow : Window {
             this.itemHeight = newHeight;
         }
 
-        // I don't know why I need to do this but I really don't care, it's 12 AM and I want sleep
-        // seems to crash if you scroll immediately, seems to do nothing if you scroll too little
-        // stupid tick hack works for now lol
-        if (this.tempScroll is not null && this.painted) {
-            var pos = this.rowMap.IndexOf(this.tempScroll.Value);
-            ImGuiP.SetScrollY(pos * this.itemHeight ?? 0);
-            this.tempScroll = null;
-        }
-
         ImGui.EndTable();
 
         this.painted = true;

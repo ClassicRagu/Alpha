@@ -16,7 +16,10 @@ public class Texture {
         if (this.Handle is null) {
             ImGui.Dummy(actualSize);
         } else {
-            ImGui.Image((ulong) this.Handle, actualSize);
+            ImTextureRef textureRef = new ImTextureRef() {
+                TexID = this.Handle.Value
+            };
+            ImGui.Image(textureRef, actualSize);
         }
     }
 }

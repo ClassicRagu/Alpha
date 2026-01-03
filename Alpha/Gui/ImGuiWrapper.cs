@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
-using Hexa.NET.ImGui.Backends.GLFW;
 using Hexa.NET.ImGui.Backends.OpenGL3;
 using Hexa.NET.ImGui.Backends.SDL2;
 using Hexa.NET.ImGui.Utilities;
@@ -80,7 +79,7 @@ public unsafe class ImGuiWrapper : IDisposable {
         if (config.BackgroundColor is { } bg) this.backgroundColor = bg;
 
         var builder = new ImGuiFontBuilder();
-        builder.Config.FontBuilderFlags |= (uint) ImGuiFreeTypeBuilderFlags.LoadColor;
+        //builder.Config.FontBuilderFlags |= (uint) ImGuiFreeTypeBuilderFlags.LoadColor;
 
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
@@ -89,7 +88,8 @@ public unsafe class ImGuiWrapper : IDisposable {
 
         // Specify some fonts to load with the Japanese ranges, some without
         var defaultRanges = io.Fonts.GetGlyphRangesDefault();
-        var japaneseRanges = io.Fonts.GetGlyphRangesJapanese();
+        // Japanese ranges do not seem to be supported anymore, need to look into this more
+        var japaneseRanges = io.Fonts.GetGlyphRangesDefault();
         var loadedFirstFont = false;
 
         // ReSharper disable once MoveLocalFunctionAfterJumpStatement
@@ -125,7 +125,6 @@ public unsafe class ImGuiWrapper : IDisposable {
         builder.Build();
 
         ImGuiImplSDL2.InitForOpenGL((SDLWindow*) this.window, (void*) this.context.Handle);
-        ImGuiImplGLFW.SetCurrentContext(ImGui.GetCurrentContext());
 
         ImGuiImplOpenGL3.SetCurrentContext(ImGui.GetCurrentContext());
         ImGuiImplOpenGL3.Init((string) null!);
