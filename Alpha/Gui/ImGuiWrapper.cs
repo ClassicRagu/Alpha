@@ -98,6 +98,7 @@ public unsafe class ImGuiWrapper : IDisposable {
 
         // Apply user fonts
         // ImFontConfig cannot be changed within functions anymore
+        // Glyph ranges are no longer required and it will just use the first font loaded with the corresponding glyphs
         foreach (var font in config.ExtraFonts) {
             if (File.Exists(font.Path) && imFontConfig.MergeMode == 1) {
                 io.Fonts.AddFontFromFileTTF(font.Path, font.Size, &imFontConfig);
@@ -113,9 +114,8 @@ public unsafe class ImGuiWrapper : IDisposable {
         
         // In case the user doesn't provide a font with Japanese glyphs, let's add one for them
         if (Environment.OSVersion.Platform == PlatformID.Win32NT) {
-            var hasJpFont = config.ExtraFonts.Any(x => x.JapaneseGlyphs);
             const string cjkFont = "C:/Windows/Fonts/msgothic.ttc";
-            if (!hasJpFont && File.Exists(cjkFont)) {
+            if (File.Exists(cjkFont)) {
                 io.Fonts.AddFontFromFileTTF(cjkFont, 13f, &imFontConfig);
             }
         }
