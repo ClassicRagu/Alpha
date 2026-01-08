@@ -78,47 +78,47 @@ public unsafe class ImGuiWrapper : IDisposable {
 
         if (config.BackgroundColor is { } bg) this.backgroundColor = bg;
 
-        var builder = new ImGuiFontBuilder();
-        //builder.Config.FontBuilderFlags |= (uint) ImGuiFreeTypeBuilderFlags.LoadColor;
-        builder.Config.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.LoadColor;
-
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
         if (config.EnableDocking) io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.IniFilename = (byte*) Marshal.StringToHGlobalAnsi(iniPath + "\0");
-        var loadedFirstFont = false;
+        
+        // These 3 fields are required for text to render properly
+        ImFontConfig imFontConfig = new ImFontConfig() {
+            /*FontDataOwnedByAtlas = 1,
+            OversampleV = 0,
+            OversampleH = 0,*/
+            GlyphMaxAdvanceX = Single.MaxValue,
+            RasterizerDensity = 1f,
+            RasterizerMultiply = 1f,
+            //EllipsisChar = 0,
+        };
 
-        // ReSharper disable once MoveLocalFunctionAfterJumpStatement
-        void SetMergeMode() {
-            // MergeMode can't be set until the first font is loaded
-            if (!loadedFirstFont) {
-                builder.Config.MergeMode = true;
-                loadedFirstFont = true;
-            }
-        }
+        imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.LoadColor;
 
         // Apply user fonts
+        // ImFontConfig cannot be changed within functions anymore
         foreach (var font in config.ExtraFonts) {
-            if (File.Exists(font.Path)) {
-                builder.AddFontFromFileTTF(font.Path, font.Size);
-                SetMergeMode();
+            if (File.Exists(font.Path) && imFontConfig.MergeMode == 1) {
+                io.Fonts.AddFontFromFileTTF(font.Path, font.Size, &imFontConfig);
+            } else {
+                io.Fonts.AddFontFromFileTTF(font.Path, font.Size, &imFontConfig);
+                imFontConfig.MergeMode = 1;
             }
         }
 
         // Fallback fonts
-        builder.AddDefaultFont();
-        SetMergeMode();
-
+        io.Fonts.AddFontDefault(&imFontConfig);
+        imFontConfig.MergeMode = 1;
+        
         // In case the user doesn't provide a font with Japanese glyphs, let's add one for them
         if (Environment.OSVersion.Platform == PlatformID.Win32NT) {
             var hasJpFont = config.ExtraFonts.Any(x => x.JapaneseGlyphs);
             const string cjkFont = "C:/Windows/Fonts/msgothic.ttc";
             if (!hasJpFont && File.Exists(cjkFont)) {
-                builder.AddFontFromFileTTF(cjkFont, 13f);
+                io.Fonts.AddFontFromFileTTF(cjkFont, 13f, &imFontConfig);
             }
         }
-
-        builder.Build();
 
         ImGuiImplSDL2.InitForOpenGL((SDLWindow*) this.window, (void*) this.context.Handle);
 
