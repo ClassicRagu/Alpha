@@ -17,9 +17,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Alpha.Gui.Windows;
 
-#pragma warning disable IL2060
-#pragma warning disable IL2075
-
 [Window("Excel")]
 public class ExcelWindow : Window {
     private IAlphaSheet? selectedSheet;
