@@ -2,17 +2,15 @@
 using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
 using Hexa.NET.ImGui.Backends.OpenGL3;
-using Hexa.NET.ImGui.Backends.SDL2;
 using Hexa.NET.ImGui.Utilities;
 using Hexa.NET.OpenGL;
 using HexaGen.Runtime;
-using Silk.NET.SDL;
-
+using Hexa.NET.SDL3;
+using Hexa.NET.ImGui.Backends.SDL3;
 namespace Alpha.Gui;
 
 public unsafe class ImGuiWrapper : IDisposable {
-    private readonly Sdl sdl;
-    private readonly Silk.NET.SDL.Window* window;
+    private readonly Hexa.NET.SDL3.SDLWindow* window;
     private readonly uint windowId;
     private readonly NativeContext context;
     private readonly GL gl;
@@ -25,7 +23,7 @@ public unsafe class ImGuiWrapper : IDisposable {
         get {
             int x;
             int y;
-            this.sdl.GetWindowPosition(this.window, &x, &y);
+            SDL.GetWindowPosition(this.window, &x, &y);
             return new Vector2(x, y);
         }
     }
@@ -33,32 +31,29 @@ public unsafe class ImGuiWrapper : IDisposable {
         get {
             int w;
             int h;
-            this.sdl.GetWindowSize(this.window, &w, &h);
+            SDL.GetWindowSize(this.window, &w, &h);
             return new Vector2(w, h);
         }
     }
 
     public ImGuiWrapper(Config config, string iniPath) {
-        this.sdl = Sdl.GetApi();
-        this.sdl.Init(Sdl.InitEvents + Sdl.InitVideo);
-        const WindowFlags flags = WindowFlags.Opengl
-                                  | WindowFlags.Resizable
-                                  | WindowFlags.AllowHighdpi;
+        //SDL.SetHint(SDL.SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
+        SDL.Init(SDLInitFlags.Events | SDLInitFlags.Video);
+        const SDLWindowFlags flags = SDLWindowFlags.Opengl
+                                  | SDLWindowFlags.Resizable
+                                  | SDLWindowFlags.AllowHighdpi;
 
-        this.window = this.sdl.CreateWindow(
-            "Alpha",
-            (int) config.WindowPos.X, (int) config.WindowPos.Y,
+        this.window = SDL.CreateWindow("Alpha",
             (int) config.WindowSize.X, (int) config.WindowSize.Y,
-            (uint) flags
-        );
-        this.windowId = this.sdl.GetWindowID(this.window);
+            flags);
+        this.windowId = SDL.GetWindowID(this.window);//this.sdl.GetWindowID(this.window);
 
-        this.context = new NativeContext(this.sdl, this.window);
+        this.context = new NativeContext(this.window);
         this.gl = new GL(this.context);
 
         this.imguiContext = ImGui.CreateContext();
         ImGui.SetCurrentContext(this.imguiContext);
-        ImGuiImplSDL2.SetCurrentContext(this.imguiContext);
+        ImGuiImplSDL3.SetCurrentContext(this.imguiContext);
 
         // Apply user themes
         switch (config.Theme) {
@@ -85,16 +80,17 @@ public unsafe class ImGuiWrapper : IDisposable {
         
         // These 3 fields are required for text to render properly
         ImFontConfig imFontConfig = new ImFontConfig() {
-            /*FontDataOwnedByAtlas = 1,
-            OversampleV = 0,
-            OversampleH = 0,*/
+            FontDataOwnedByAtlas = 1,
+            OversampleV = 1,
+            OversampleH = 1,
             GlyphMaxAdvanceX = Single.MaxValue,
             RasterizerDensity = 1f,
             RasterizerMultiply = 1f,
-            //EllipsisChar = 0,
+            EllipsisChar = 0,
         };
 
         imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.LoadColor;
+        imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.Bitmap;
 
         // Apply user fonts
         // ImFontConfig cannot be changed within functions anymore
@@ -120,7 +116,7 @@ public unsafe class ImGuiWrapper : IDisposable {
             }
         }
 
-        ImGuiImplSDL2.InitForOpenGL((SDLWindow*) this.window, (void*) this.context.Handle);
+        ImGuiImplSDL3.InitForOpenGL(new SDLWindowPtr((Hexa.NET.ImGui.Backends.SDL3.SDLWindow*) this.window), (void*) this.context.Handle);
 
         ImGuiImplOpenGL3.SetCurrentContext(ImGui.GetCurrentContext());
         ImGuiImplOpenGL3.Init((string) null!);
@@ -129,29 +125,29 @@ public unsafe class ImGuiWrapper : IDisposable {
     }
 
     public void DoEvents() {
-        Event @event;
-        this.sdl.PumpEvents();
-        while (this.sdl.PollEvent(&@event) == (int) SdlBool.True) {
-            var type = (EventType) @event.Type;
-            if (type == EventType.Windowevent) {
+        Hexa.NET.SDL3.SDLEvent @event;
+        SDL.PumpEvents();
+        while (SDL.PollEvent(&@event) == true) {
+            var type = (SDLEventType) @event.Type;
+            if (type == SDLEventType.WindowCloseRequested) {
                 var windowEvent = @event.Window;
                 if (windowEvent.WindowID == this.windowId) {
-                    if ((WindowEventID) @event.Window.Event == WindowEventID.Close) this.Exiting = true;
+                    this.Exiting = true;
                 }
             }
 
-            ImGuiImplSDL2.ProcessEvent((SDLEvent*) &@event);
+            ImGuiImplSDL3.ProcessEvent((Hexa.NET.ImGui.Backends.SDL3.SDLEvent*) &@event);
         }
     }
 
     public void Render(Action draw) {
         ImGui.SetCurrentContext(this.imguiContext);
-        ImGuiImplSDL2.NewFrame();
+        ImGuiImplSDL3.NewFrame();
         ImGui.NewFrame();
 
         draw();
 
-        this.sdl.GLMakeCurrent(this.window, (void*) this.context.Handle);
+        SDL.GLMakeCurrent(this.window, this.context.Handle);
         this.gl.BindFramebuffer(GLFramebufferTarget.Framebuffer, 0);
 
         this.gl.ClearColor(this.backgroundColor.X, this.backgroundColor.Y, this.backgroundColor.Z, 1);
@@ -164,21 +160,21 @@ public unsafe class ImGuiWrapper : IDisposable {
         ImGuiImplOpenGL3.NewFrame();
         ImGuiImplOpenGL3.RenderDrawData(ImGui.GetDrawData());
 
-        this.sdl.GLSwapWindow(this.window);
-        this.sdl.GLSetSwapInterval(1);
+        SDL.GLSwapWindow(this.window);
+        SDL.GLSetSwapInterval(1);
     }
 
     public void Dispose() {
         ImGuiImplOpenGL3.Shutdown();
-        ImGuiImplSDL2.Shutdown();
-        ImGuiImplSDL2.SetCurrentContext(null);
+        ImGuiImplSDL3.Shutdown();
+        ImGuiImplSDL3.SetCurrentContext(null);
         ImGuiImplOpenGL3.SetCurrentContext(null);
         ImGui.SetCurrentContext(null);
         ImGui.DestroyContext(this.imguiContext);
 
         this.context.Dispose();
-        this.sdl.DestroyWindow(this.window);
-        this.sdl.Quit();
+        SDL.DestroyWindow(this.window);
+        SDL.Quit();
     }
 
     public nint CreateTexture(byte[] data, int width, int height) {
@@ -210,31 +206,28 @@ public unsafe class ImGuiWrapper : IDisposable {
         this.gl.DeleteTexture((uint) texture);
     }
 
-    private class NativeContext(Sdl sdl, Silk.NET.SDL.Window* window) : IGLContext {
-        private void* glContext = sdl.GLCreateContext(window);
-        public nint Handle => (nint) this.glContext;
-        public bool IsCurrent => sdl.GLGetCurrentContext() == this.glContext;
+    private class NativeContext(Hexa.NET.SDL3.SDLWindow* window) : IGLContext {
+        private SDLGLContext glContext = SDL.GLCreateContext(window);
+        public nint Handle => this.glContext.Handle;
+        public bool IsCurrent => SDL.GLGetCurrentContext() == this.glContext;
 
         public void Dispose() {
-            if (this.glContext != null) {
-                sdl.GLDeleteContext(this.glContext);
-                this.glContext = null;
-            }
+            SDL.GLDestroyContext(this.glContext);
         }
 
         public bool TryGetProcAddress(string procName, out nint procAddress) {
-            procAddress = (nint) sdl.GLGetProcAddress(procName);
+            procAddress = (nint) SDL.GLGetProcAddress(procName);
             return procAddress != 0;
         }
 
         public nint GetProcAddress(string procName)
-            => (nint) sdl.GLGetProcAddress(procName);
+            => (nint) SDL.GLGetProcAddress(procName);
 
         public bool IsExtensionSupported(string extensionName)
-            => sdl.GLExtensionSupported(extensionName) != 0;
+            => SDL.GLExtensionSupported(extensionName) != false;
 
-        public void MakeCurrent() => sdl.GLMakeCurrent(window, this.glContext);
-        public void SwapBuffers() => sdl.GLSwapWindow(window);
-        public void SwapInterval(int interval) => sdl.GLSetSwapInterval(interval);
+        public void MakeCurrent() => SDL.GLMakeCurrent(window, this.glContext);
+        public void SwapBuffers() => SDL.GLSwapWindow(window);
+        public void SwapInterval(int interval) => SDL.GLSetSwapInterval(interval);
     }
 }
