@@ -106,18 +106,18 @@ public static class Util {
 
     // Unsure why these aren't in the ImGui global
     public static bool IsKeyDown(ImGuiKey key) {
-        return ImGuiP.IsKeyDown(key);
+        return ImGuiP.IsKeyDown(key, 0u);
     }
 
     public static bool IsMouseClicked(ImGuiMouseButton button) {
-        return ImGuiP.IsMouseClicked(button);
+        return ImGuiP.IsMouseClicked(button, 0u);
     }
 
     public static bool IsMouseReleased(ImGuiMouseButton button) {
-        return ImGuiP.IsMouseReleased(button);
+        return ImGuiP.IsMouseReleased(button, 0u);
     }
 
     public static bool IsMouseDown(ImGuiMouseButton button) {
-        return ImGuiP.IsMouseDown(button);
+        return ImGuiP.IsMouseDown(button, 0u);
     }
 }

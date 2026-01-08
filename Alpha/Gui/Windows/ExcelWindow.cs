@@ -17,9 +17,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Alpha.Gui.Windows;
 
-#pragma warning disable IL2060
-#pragma warning disable IL2075
-
 [Window("Excel")]
 public class ExcelWindow : Window {
     private IAlphaSheet? selectedSheet;
@@ -679,15 +676,6 @@ public class ExcelWindow : Window {
 
         if (this.itemHeight is not null && newHeight > this.itemHeight) {
             this.itemHeight = newHeight;
-        }
-
-        // I don't know why I need to do this but I really don't care, it's 12 AM and I want sleep
-        // seems to crash if you scroll immediately, seems to do nothing if you scroll too little
-        // stupid tick hack works for now lol
-        if (this.tempScroll is not null && this.painted) {
-            var pos = this.rowMap.IndexOf(this.tempScroll.Value);
-            ImGuiP.SetScrollY(pos * this.itemHeight ?? 0);
-            this.tempScroll = null;
         }
 
         ImGui.EndTable();

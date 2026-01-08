@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Hexa.NET.ImGui;
-using Hexa.NET.ImGui.Backends.GLFW;
 using Hexa.NET.ImGui.Backends.OpenGL3;
 using Hexa.NET.ImGui.Backends.SDL2;
 using Hexa.NET.ImGui.Utilities;
@@ -79,53 +78,49 @@ public unsafe class ImGuiWrapper : IDisposable {
 
         if (config.BackgroundColor is { } bg) this.backgroundColor = bg;
 
-        var builder = new ImGuiFontBuilder();
-        builder.Config.FontBuilderFlags |= (uint) ImGuiFreeTypeBuilderFlags.LoadColor;
-
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
         if (config.EnableDocking) io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.IniFilename = (byte*) Marshal.StringToHGlobalAnsi(iniPath + "\0");
+        
+        // These 3 fields are required for text to render properly
+        ImFontConfig imFontConfig = new ImFontConfig() {
+            /*FontDataOwnedByAtlas = 1,
+            OversampleV = 0,
+            OversampleH = 0,*/
+            GlyphMaxAdvanceX = Single.MaxValue,
+            RasterizerDensity = 1f,
+            RasterizerMultiply = 1f,
+            //EllipsisChar = 0,
+        };
 
-        // Specify some fonts to load with the Japanese ranges, some without
-        var defaultRanges = io.Fonts.GetGlyphRangesDefault();
-        var japaneseRanges = io.Fonts.GetGlyphRangesJapanese();
-        var loadedFirstFont = false;
-
-        // ReSharper disable once MoveLocalFunctionAfterJumpStatement
-        void SetMergeMode() {
-            // MergeMode can't be set until the first font is loaded
-            if (!loadedFirstFont) {
-                builder.Config.MergeMode = true;
-                loadedFirstFont = true;
-            }
-        }
+        imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.LoadColor;
 
         // Apply user fonts
+        // ImFontConfig cannot be changed within functions anymore
+        // Glyph ranges are no longer required and it will just use the first font loaded with the corresponding glyphs
         foreach (var font in config.ExtraFonts) {
-            if (File.Exists(font.Path)) {
-                builder.AddFontFromFileTTF(font.Path, font.Size, font.JapaneseGlyphs ? japaneseRanges : defaultRanges);
-                SetMergeMode();
+            if (File.Exists(font.Path) && imFontConfig.MergeMode == 1) {
+                io.Fonts.AddFontFromFileTTF(font.Path, font.Size, &imFontConfig);
+            } else {
+                io.Fonts.AddFontFromFileTTF(font.Path, font.Size, &imFontConfig);
+                imFontConfig.MergeMode = 1;
             }
         }
 
         // Fallback fonts
-        builder.AddDefaultFont();
-        SetMergeMode();
-
+        io.Fonts.AddFontDefault(&imFontConfig);
+        imFontConfig.MergeMode = 1;
+        
         // In case the user doesn't provide a font with Japanese glyphs, let's add one for them
         if (Environment.OSVersion.Platform == PlatformID.Win32NT) {
-            var hasJpFont = config.ExtraFonts.Any(x => x.JapaneseGlyphs);
             const string cjkFont = "C:/Windows/Fonts/msgothic.ttc";
-            if (!hasJpFont && File.Exists(cjkFont)) {
-                builder.AddFontFromFileTTF(cjkFont, 13f, japaneseRanges);
+            if (File.Exists(cjkFont)) {
+                io.Fonts.AddFontFromFileTTF(cjkFont, 13f, &imFontConfig);
             }
         }
 
-        builder.Build();
-
         ImGuiImplSDL2.InitForOpenGL((SDLWindow*) this.window, (void*) this.context.Handle);
-        ImGuiImplGLFW.SetCurrentContext(ImGui.GetCurrentContext());
 
         ImGuiImplOpenGL3.SetCurrentContext(ImGui.GetCurrentContext());
         ImGuiImplOpenGL3.Init((string) null!);
