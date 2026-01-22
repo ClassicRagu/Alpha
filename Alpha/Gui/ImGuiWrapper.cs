@@ -84,13 +84,12 @@ public unsafe class ImGuiWrapper : IDisposable {
             OversampleV = 1,
             OversampleH = 1,
             GlyphMaxAdvanceX = Single.MaxValue,
-            RasterizerDensity = 1f,
+            RasterizerDensity = 2f,
             RasterizerMultiply = 1f,
             EllipsisChar = 0,
         };
 
         imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.LoadColor;
-        imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.NoHinting;
 
         // Apply user fonts
         // ImFontConfig cannot be changed within functions anymore
