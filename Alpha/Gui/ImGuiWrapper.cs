@@ -90,7 +90,7 @@ public unsafe class ImGuiWrapper : IDisposable {
         };
 
         imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.LoadColor;
-        imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.Bitmap;
+        imFontConfig.FontLoaderFlags |= (uint) ImGuiFreeTypeLoaderFlags.NoHinting;
 
         // Apply user fonts
         // ImFontConfig cannot be changed within functions anymore
